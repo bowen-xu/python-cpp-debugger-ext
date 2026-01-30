@@ -37,7 +37,7 @@ export async function createProxyServer(
         server.listen(0, "127.0.0.1", () => {
             const address = server.address();
             if (!address || typeof address === "string") {
-                reject(new Error("Failed to acquire a TCP port for JITCPP adapter."));
+                reject(new Error("Failed to acquire a TCP port for PYCPP adapter."));
                 return;
             }
             resolve(address.port);
@@ -103,7 +103,7 @@ function createProxySession(
         socket, // passed in from VS Code
         socket,
         (message) => handlers.handleClientMessage(message),
-        (error) => output.appendLine(`JITCPP client error: ${error.message}`),
+        (error) => output.appendLine(`PYCPP client error: ${error.message}`),
     );
 
     // Connection to debugpy (Python debugger adapter).
@@ -205,7 +205,7 @@ function createProxySession(
     }
 
     socket.on("close", () => {
-        output.appendLine("JITCPP socket closed.");
+        output.appendLine("PYCPP socket closed.");
         session.clientClosed = true;
         if (!debugpy.killed) {
             debugpy.kill();
@@ -216,7 +216,7 @@ function createProxySession(
     });
 
     socket.on("error", (error) => {
-        output.appendLine(`JITCPP socket error: ${error.message}`);
+        output.appendLine(`PYCPP socket error: ${error.message}`);
         session.clientClosed = true;
         if (!debugpy.killed) {
             debugpy.kill();

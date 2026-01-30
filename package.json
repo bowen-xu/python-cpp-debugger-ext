@@ -1,7 +1,7 @@
 {
     "name": "python-cpp-debugger",
-    "displayName": "python-cpp-debugger",
-    "description": "",
+    "displayName": "pycpp mixed debugger",
+    "description": "pycpp mixed debugger",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.107.0"
@@ -11,7 +11,7 @@
     ],
     "activationEvents": [
         "onDebugInitialConfigurations",
-        "onDebugResolve:jitcpp-debug"
+        "onDebugResolve:pycpp-debug"
     ],
     "extensionDependencies": [
         "ms-python.python"
@@ -20,11 +20,13 @@
     "contributes": {
         "debuggers": [
             {
-                "type": "jitcpp-debug",
-                "label": "JITCPP Mixed Debug",
+                "type": "pycpp-debug",
+                "label": "pycpp mixed debugger",
                 "program": "./out/extension.js",
                 "languages": [
-                    "python"
+                    "python",
+                    "cpp",
+                    "c"
                 ],
                 "configurationAttributes": {
                     "launch": {
@@ -77,18 +79,14 @@
                             "lldbAttachToPythonProcess": {
                                 "type": "boolean",
                                 "description": "Attach LLDB to the Python process when it launches."
-                            },
-                            "jitcppOutputDir": {
-                                "type": "string",
-                                "description": "Directory to write generated JIT C++ source files."
                             }
                         }
                     }
                 },
                 "initialConfigurations": [
                     {
-                        "name": "JITCPP: Mixed Debug",
-                        "type": "jitcpp-debug",
+                        "name": "PYCPP: Mixed Debug",
+                        "type": "pycpp-debug",
                         "request": "launch",
                         "program": "${file}",
                         "cwd": "${workspaceFolder}",

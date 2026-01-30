@@ -1,4 +1,4 @@
-# python-cpp-debugger
+# pycpp mixed debugger
 
 ## Goal
 
@@ -8,7 +8,7 @@ Provide a single VS Code debug session that can step and break in both:
 
 ## How It Works
 
-The `jitcpp-debug` adapter is a thin DAP bridge:
+The `pycpp-debug` adapter is a thin DAP bridge:
 - It launches the Python debugger (debugpy) to run the Python program.
 - It launches an LLDB DAP adapter and attaches it to the same Python process.
 - When you set breakpoints, it routes them:
@@ -26,19 +26,17 @@ Routing is based on file extensions. The adapter defaults to `.py` for Python an
 
 ## Usage
 
-Add a `jitcpp-debug` launch config. The adapter forwards to debugpy and routes JIT breakpoints to LLDB.
+Add a `pycpp-debug` launch config. The adapter forwards to debugpy and routes JIT breakpoints to LLDB.
 
 ```json
 {
-  "name": "JITCPP: Mixed Debug",
-  "type": "jitcpp-debug",
-  "request": "launch",
-  "program": "${file}",
-  "cwd": "${workspaceFolder}",
-  "args": [],
-  "env": {},
-  "lldbAttachToPythonProcess": true,
-  "console": "integratedTerminal"
+    "name": "PYCPP: Mixed Debug",
+    "type": "pycpp-debug",
+    "request": "launch",
+    "program": "${file}",
+    "cwd": "${workspaceFolder}",
+    "args": [],
+    "env": {}
 }
 ```
 
@@ -48,7 +46,7 @@ Use these when your environment is non-standard (custom Python, debugpy adapter,
 
 ```json
 {
-  "type": "jitcpp-debug",
+  "type": "pycpp-debug",
   "request": "launch",
   "program": "${file}",
   "pythonPath": "python3",
@@ -67,7 +65,7 @@ By default, the adapter routes `.py` to debugpy and common C/C++ extensions to L
 
 ```json
 {
-  "type": "jitcpp-debug",
+  "type": "pycpp-debug",
   "request": "launch",
   "program": "${file}",
   "pythonFileExtensions": [".py"],
@@ -77,5 +75,5 @@ By default, the adapter routes `.py` to debugpy and common C/C++ extensions to L
 
 ## Notes
 
-- The UI shows a single `jitcpp-debug` session; Python events come from debugpy.
+- The UI shows a single `pycpp-debug` session; Python events come from debugpy.
 - Breakpoints are routed by file extension; customize via `files.associations` or the launch config overrides.

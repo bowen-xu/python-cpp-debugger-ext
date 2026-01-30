@@ -3,10 +3,10 @@ import * as vscode from "vscode";
 import { createProxyServer } from "./proxy";
 
 
-export class JitcppDebugAdapterDescriptorFactory
+export class PycppDebugAdapterDescriptorFactory
     implements vscode.DebugAdapterDescriptorFactory, vscode.Disposable {
     // Output channel visible in VS Code's Output panel.
-    private readonly output = vscode.window.createOutputChannel("JITCPP Debug");
+    private readonly output = vscode.window.createOutputChannel("PYCPP Mixed Debugger");
     private readonly servers = new Set<net.Server>();
 
     async createDebugAdapterDescriptor(

@@ -8,15 +8,15 @@ import {
     normalizeExtensionList,
 } from "./file_extensions";
 
-export class JitcppDebugConfigurationProvider
+export class PycppDebugConfigurationProvider
     implements vscode.DebugConfigurationProvider {
     provideDebugConfigurations(): vscode.DebugConfiguration[] {
         // Provide a default launch configuration when the user clicks
         // "Add Configuration..." in VS Code.
         return [
             {
-                name: "JITCPP: Mixed Debug",
-                type: "jitcpp-debug",
+                name: "PYCPP: Mixed Debug",
+                type: "pycpp-debug",
                 request: "launch",
                 program: "${file}",
                 cwd: "${workspaceFolder}",
@@ -32,7 +32,7 @@ export class JitcppDebugConfigurationProvider
         config: vscode.DebugConfiguration,
     ): Promise<vscode.DebugConfiguration | null | undefined> {
         // Only handle our own debug type.
-        if (config.type !== "jitcpp-debug") {
+        if (config.type !== "pycpp-debug") {
             return config;
         }
 
@@ -42,7 +42,7 @@ export class JitcppDebugConfigurationProvider
         );
         if (!pythonExtension) {
             void vscode.window.showErrorMessage(
-                "JITCPP debug requires the Python Debugger extension (ms-python.debugpy).",
+                "PYCPP mixed debugger requires the Python Debugger extension (ms-python.debugpy).",
             );
             return null;
         }
@@ -53,7 +53,7 @@ export class JitcppDebugConfigurationProvider
         }
 
         if (!config.name) {
-            config.name = "JITCPP: Mixed Debug";
+            config.name = "PYCPP: Mixed Debug";
         }
 
         if (!config.cwd && folder?.uri.fsPath) {
@@ -84,7 +84,7 @@ export class JitcppDebugConfigurationProvider
         }
 
         // Return the config to VS Code. The actual DAP work happens in the
-        // debug adapter (see jitcpp_adapter.ts).
+        // debug adapter (see pycpp_adapter.ts).
         return config;
     }
 }
