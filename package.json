@@ -1,5 +1,7 @@
 {
     "name": "python-cpp-debugger",
+    "publisher": "Bowen-Xu",
+    "author": {"name": "Bowen Xu", "email": "bowenxu.agi@gmail.com"},
     "displayName": "Python C++ Mixed Debugger",
     "description": "Better debugging experience for Python and C/C++ mixed programs in VS Code.",
     "keywords": [
@@ -100,13 +102,28 @@
                 },
                 "initialConfigurations": [
                     {
-                        "name": "PYCPP: Mixed Debug",
+                        "name": "PYCPP: Mixed Debugger",
                         "type": "pycpp-debug",
                         "request": "launch",
                         "program": "${file}",
                         "cwd": "${workspaceFolder}",
                         "args": [],
                         "env": {}
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "PYCPP: Python C++ Mixed Debugger",
+                        "description": "Launch a Python program with C/C++ mixed debugging support.",
+                        "body": {
+                            "name": "PYCPP: Mixed Debugger",
+                            "type": "pycpp-debug",
+                            "request": "launch",
+                            "program": "${file}",
+                            "cwd": "${workspaceFolder}",
+                            "args": [],
+                            "env": {}
+                        }
                     }
                 ]
             }

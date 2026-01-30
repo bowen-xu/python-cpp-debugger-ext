@@ -15,7 +15,7 @@ export class PycppDebugConfigurationProvider
         // "Add Configuration..." in VS Code.
         return [
             {
-                name: "PYCPP: Mixed Debug",
+                name: "PYCPP: Mixed Debugger",
                 type: "pycpp-debug",
                 request: "launch",
                 program: "${file}",
@@ -53,7 +53,7 @@ export class PycppDebugConfigurationProvider
         }
 
         if (!config.name) {
-            config.name = "PYCPP: Mixed Debug";
+            config.name = "PYCPP: Mixed Debugger";
         }
 
         if (!config.cwd && folder?.uri.fsPath) {

@@ -30,7 +30,7 @@ Add a `pycpp-debug` launch config. The adapter forwards to debugpy and routes JI
 
 ```json
 {
-    "name": "PYCPP: Mixed Debug",
+    "name": "PYCPP: Mixed Debugger",
     "type": "pycpp-debug",
     "request": "launch",
     "program": "${file}",
