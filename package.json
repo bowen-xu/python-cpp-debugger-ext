@@ -1,13 +1,28 @@
 {
     "name": "python-cpp-debugger",
-    "displayName": "pycpp mixed debugger",
-    "description": "pycpp mixed debugger",
-    "version": "0.0.1",
+    "displayName": "Python C++ Mixed Debugger",
+    "description": "Better debugging experience for Python and C/C++ mixed programs in VS Code.",
+    "keywords": [
+        "python",
+        "c++",
+        "cpp",
+        "py",
+        "debug",
+        "debugger",
+        "c",
+        "python-cpp",
+        "pycpp",
+        "mixed",
+        "pythoncpp"
+    ],
+    "icon": "imgs/logo.png",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.107.0"
     },
     "categories": [
-        "Other"
+        "Debuggers",
+        "Programming Languages"
     ],
     "activationEvents": [
         "onDebugInitialConfigurations",
@@ -21,7 +36,7 @@
         "debuggers": [
             {
                 "type": "pycpp-debug",
-                "label": "pycpp mixed debugger",
+                "label": "PyCpp Debugger",
                 "program": "./out/extension.js",
                 "languages": [
                     "python",
