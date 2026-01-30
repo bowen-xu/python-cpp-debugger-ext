@@ -1,0 +1,123 @@
+{
+    "name": "python-cpp-debugger",
+    "displayName": "python-cpp-debugger",
+    "description": "",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.107.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onDebugInitialConfigurations",
+        "onDebugResolve:jitcpp-debug"
+    ],
+    "extensionDependencies": [
+        "ms-python.python"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "debuggers": [
+            {
+                "type": "jitcpp-debug",
+                "label": "JITCPP Mixed Debug",
+                "program": "./out/extension.js",
+                "languages": [
+                    "python"
+                ],
+                "configurationAttributes": {
+                    "launch": {
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Python entry file to run."
+                            },
+                            "cwd": {
+                                "type": "string",
+                                "description": "Working directory for the Python process."
+                            },
+                            "args": {
+                                "type": "array",
+                                "description": "Command line arguments passed to the program."
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Environment variables."
+                            },
+                            "console": {
+                                "type": "string",
+                                "enum": [
+                                    "internalConsole",
+                                    "integratedTerminal",
+                                    "externalTerminal"
+                                ],
+                                "description": "Where to run the Python process."
+                            },
+                            "pythonPath": {
+                                "type": "string",
+                                "description": "Python executable used to launch debugpy."
+                            },
+                            "debugpyAdapterPath": {
+                                "type": "string",
+                                "description": "Path to debugpy adapter (optional)."
+                            },
+                            "lldbAdapterPath": {
+                                "type": "string",
+                                "description": "Path to LLDB adapter (CodeLLDB or lldb-dap)."
+                            },
+                            "pythonFileExtensions": {
+                                "type": "array",
+                                "description": "File extensions treated as Python sources (default: .py + files.associations)."
+                            },
+                            "cppFileExtensions": {
+                                "type": "array",
+                                "description": "File extensions treated as C/C++ sources (default: common C/C++ + files.associations)."
+                            },
+                            "lldbAttachToPythonProcess": {
+                                "type": "boolean",
+                                "description": "Attach LLDB to the Python process when it launches."
+                            },
+                            "jitcppOutputDir": {
+                                "type": "string",
+                                "description": "Directory to write generated JIT C++ source files."
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "name": "JITCPP: Mixed Debug",
+                        "type": "jitcpp-debug",
+                        "request": "launch",
+                        "program": "${file}",
+                        "cwd": "${workspaceFolder}",
+                        "args": [],
+                        "env": {}
+                    }
+                ]
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src",
+        "test": "vscode-test"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.107.0",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "22.x",
+        "typescript-eslint": "^8.48.1",
+        "eslint": "^9.39.1",
+        "typescript": "^5.9.3",
+        "@vscode/test-cli": "^0.0.12",
+        "@vscode/test-electron": "^2.5.2"
+    },
+    "dependencies": {
+        "@vscode/python-extension": "^1.0.6"
+    }
+}
