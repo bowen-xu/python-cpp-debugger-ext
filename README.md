@@ -1,4 +1,6 @@
-# pycpp mixed debugger
+# Python C++ Mixed Debugger
+
+![demo_breakpoints](imgs/demo_breakpoints.gif)
 
 ## Goal
 
