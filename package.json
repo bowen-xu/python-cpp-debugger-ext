@@ -117,5 +117,10 @@
     },
     "dependencies": {
         "@vscode/python-extension": "^1.0.6"
+    },
+    "repository": {
+        "url": "https://github.com/bowen-xu/python-cpp-debugger-ext",
+        "type": "git",
+        "directory": "."
     }
 }

@@ -77,3 +77,10 @@ By default, the adapter routes `.py` to debugpy and common C/C++ extensions to L
 
 - The UI shows a single `pycpp-debug` session; Python events come from debugpy.
 - Breakpoints are routed by file extension; customize via `files.associations` or the launch config overrides.
+
+
+## License
+
+Copyright (C) 2026 Bowen Xu
+
+This project is licensed under the GNU General Public License v3.0.
