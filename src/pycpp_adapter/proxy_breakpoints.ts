@@ -19,13 +19,15 @@ export type BreakpointContext = {
     sendToClient: (message: DapMessage) => void;
     forwardClientRequestToDebugpy: (request: DapRequest) => void;
     forwardClientRequestToLldb: (request: DapRequest) => void;
+    onSetBreakpointsResolved?: () => void;
 };
 
 // Handle setBreakpoints by routing Python vs C++ files to the right adapter.
 // Steps:
 // 1) Resolve the source path and decide which adapter owns it.
-// 2) Dispatch the request to debugpy or LLDB.
-// 3) Merge results back to VS Code.
+// 2) Track line-1 breakpoints for non-C++ sources to prevent auto-continue.
+// 3) Dispatch the request to debugpy or LLDB.
+// 4) Merge results back to VS Code.
 export function handleSetBreakpoints(
     context: BreakpointContext,
     request: DapRequest,
@@ -45,7 +47,13 @@ export function handleSetBreakpoints(
 
     const sourceType = classifySourcePath(context, pathValue);
     if (forwardToDebugpyIf(context, request, sourceType !== "cpp")) {
+        // Track line-1 breakpoints for non-C++ sources
+        updateEntryLineBreakpoints(context, pathValue, sourceType, breakpoints);
         return;
+    }
+
+    if (breakpoints.length > 0) {
+        context.session.cppBreakpointsPresent = true;
     }
 
     // Build an aggregate response to send back to VS Code later.
@@ -270,6 +278,10 @@ function sendMergedResponse(context: BreakpointContext, pending: PendingSetBreak
         body,
     };
     context.breakpointState.pendingSetBreakpoints.delete(pending.originalSeq);
+    if (context.session.pendingSetBreakpointsRequests > 0) {
+        context.session.pendingSetBreakpointsRequests -= 1;
+    }
+    context.onSetBreakpointsResolved?.();
     context.sendToClient(response);
 }
 
@@ -288,6 +300,32 @@ function cacheJitBreakpoints(
         unique.add(bp.originalLine);
     }
     context.breakpointState.jitBreakpointCache.set(sourcePath, Array.from(unique.values()));
+}
+
+// Track line-1 breakpoints for non-C++ sources to detect entry line stops.
+// Steps:
+// 1) Check if any breakpoint is on line 1.
+// 2) Update the map with the source path and whether a line-1 breakpoint exists.
+// 3) Recompute session.hasEntryLineBreakpoint from the map.
+function updateEntryLineBreakpoints(
+    context: BreakpointContext,
+    sourcePath: string,
+    sourceType: "cpp" | "python" | "unknown",
+    breakpoints: Array<{ line: number }>,
+): void {
+    // Only track line-1 breakpoints for non-C++ sources
+    if (sourceType === "cpp") {
+        context.breakpointState.entryLineBreakpoints.delete(sourcePath);
+    } else {
+        const hasLine1 = breakpoints.some((bp) => bp.line === 1);
+        if (hasLine1) {
+            context.breakpointState.entryLineBreakpoints.set(sourcePath, true);
+        } else {
+            context.breakpointState.entryLineBreakpoints.delete(sourcePath);
+        }
+    }
+    // Recompute session.hasEntryLineBreakpoint from the map
+    context.session.hasEntryLineBreakpoint = context.breakpointState.entryLineBreakpoints.size > 0;
 }
 
 function classifySourcePath(

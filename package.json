@@ -9,16 +9,32 @@
         "c++",
         "cpp",
         "py",
+        "pycpp-debug",
         "debug",
         "debugger",
         "c",
         "python-cpp",
         "pycpp",
         "mixed",
-        "pythoncpp"
+        "pythoncpp",
+        "python C++ Debug",
+        "python c++ debugger",
+        "C++ Python Debug",
+        "C++ Python Debugger",
+        "Debug Python C++",
+        "python and c++",
+        "python & c++",
+        "native",
+        "python debug",
+        "python native debug",
+        "python attach",
+        "C++ attach",
+        "Cpp attach",
+        "Python attach C++",
+        "debug python c++"
     ],
     "icon": "imgs/logo.png",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "engines": {
         "vscode": "^1.107.0"
     },
@@ -96,6 +112,11 @@
                             "lldbAttachToPythonProcess": {
                                 "type": "boolean",
                                 "description": "Attach LLDB to the Python process when it launches."
+                            },
+                            "startupTimingLogs": {
+                                "type": "boolean",
+                                "description": "Emit timing logs for launch/attach, configurationDone, and setBreakpoints ordering (default: false).",
+                                "default": false
                             }
                         }
                     }
@@ -119,8 +140,8 @@
                             "name": "PYCPP: Mixed Debugger",
                             "type": "pycpp-debug",
                             "request": "launch",
-                            "program": "${file}",
-                            "cwd": "${workspaceFolder}",
+                            "program": "^\"\\${file}\"",
+                            "cwd": "^\"\\${workspaceFolder}\"",
                             "args": [],
                             "env": {}
                         }

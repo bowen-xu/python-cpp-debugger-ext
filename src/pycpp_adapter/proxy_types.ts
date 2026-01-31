@@ -25,6 +25,7 @@ export type LldbState = {
 export type BreakpointState = {
     pendingSetBreakpoints: Map<number, PendingSetBreakpoints>;
     jitBreakpointCache: Map<string, number[]>;
+    entryLineBreakpoints: Map<string, boolean>;
 };
 
 export type SessionState = {
@@ -45,4 +46,16 @@ export type SessionState = {
     exitedEventSeen: boolean;
     awaitingDisconnect: boolean;
     disconnectTimer?: NodeJS.Timeout;
+    // configurationDone gating: track when to send debugpy configurationDone
+    clientConfigurationDone: boolean;
+    pendingSetBreakpointsRequests: number;
+    cppBreakpointsPresent: boolean;
+    lldbAttachCompleted: boolean;
+    debugpyConfigurationDoneSent: boolean;
+    // Forced entry stop and auto-continue coordination
+    forcedStopOnEntry: boolean;
+    pendingAutoContinue: boolean;
+    autoContinueThreadId?: number;
+    // Entry line breakpoint detection (line 1 in non-C++ sources)
+    hasEntryLineBreakpoint: boolean;
 };

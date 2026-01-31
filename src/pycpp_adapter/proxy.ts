@@ -84,11 +84,20 @@ function createProxySession(
         terminatedEventSeen: false,
         exitedEventSeen: false,
         awaitingDisconnect: false,
+        clientConfigurationDone: false,
+        pendingSetBreakpointsRequests: 0,
+        cppBreakpointsPresent: false,
+        lldbAttachCompleted: !lldb || config.lldbAttachToPythonProcess === false,
+        debugpyConfigurationDoneSent: false,
+        forcedStopOnEntry: false,
+        pendingAutoContinue: false,
+        hasEntryLineBreakpoint: false,
     };
 
     const breakpointState: BreakpointState = {
         pendingSetBreakpoints: new Map(),
         jitBreakpointCache: new Map<string, number[]>(),
+        entryLineBreakpoints: new Map<string, boolean>(),
     };
 
     // Handlers are initialized after contexts are created.

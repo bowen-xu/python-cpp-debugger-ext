@@ -91,6 +91,14 @@ export function normalizeSourcePath(pathValue: string | undefined): string | und
     return pathValue;
 }
 
+export function delay(ms: number): Promise<void> {
+    // Async sleep utility for configurable startup delays.
+    if (ms <= 0) {
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function spawnDebugpyAdapter(
     config: vscode.DebugConfiguration,
     output: vscode.OutputChannel,

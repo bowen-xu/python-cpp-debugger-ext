@@ -10,6 +10,12 @@ import {
 
 export class PycppDebugConfigurationProvider
     implements vscode.DebugConfigurationProvider {
+    private readonly workspaceState: vscode.Memento;
+
+    constructor(context: vscode.ExtensionContext) {
+        this.workspaceState = context.workspaceState;
+    }
+
     provideDebugConfigurations(): vscode.DebugConfiguration[] {
         // Provide a default launch configuration when the user clicks
         // "Add Configuration..." in VS Code.
@@ -22,7 +28,6 @@ export class PycppDebugConfigurationProvider
                 cwd: "${workspaceFolder}",
                 args: [],
                 env: {},
-                console: "integratedTerminal",
             },
         ];
     }
@@ -64,6 +69,17 @@ export class PycppDebugConfigurationProvider
             config.program = "${file}";
         }
 
+        const lastProgram = this.workspaceState.get<string>(
+            getLastProgramKey(config.name),
+        );
+        if (
+            config.program === "${file}" &&
+            lastProgram &&
+            vscode.debug.activeDebugSession?.type === "pycpp-debug"
+        ) {
+            config.program = lastProgram;
+        }
+
         if (!config.console) {
             config.console = "integratedTerminal";
         }
@@ -87,6 +103,20 @@ export class PycppDebugConfigurationProvider
         // debug adapter (see pycpp_adapter.ts).
         return config;
     }
+
+    resolveDebugConfigurationWithSubstitutedVariables(
+        _folder: vscode.WorkspaceFolder | undefined,
+        config: vscode.DebugConfiguration,
+    ): vscode.DebugConfiguration | null | undefined {
+        if (config.type === "pycpp-debug" && typeof config.program === "string") {
+            void this.workspaceState.update(getLastProgramKey(config.name), config.program);
+        }
+        return config;
+    }
+}
+
+function getLastProgramKey(name: string | undefined): string {
+    return `pycpp.lastProgram.${name ?? "default"}`;
 }
 
 function resolveFileExtensions(): { python: string[]; cpp: string[] } {

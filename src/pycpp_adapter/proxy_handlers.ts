@@ -14,6 +14,7 @@ import {
 } from "./proxy_breakpoints";
 import { DebugpyState, LldbState, SessionState } from "./proxy_types";
 import { ShutdownManager } from "./proxy_shutdown";
+import { delay } from "./utils";
 
 export type HandlerContext = {
     session: SessionState;
@@ -82,6 +83,71 @@ export function forwardClientRequestToDebugpy(
 // 2) Build a debugpy handler that merges responses and emits events.
 // 3) Build an LLDB handler that merges responses and refreshes state.
 export function createHandlers(context: HandlerContext): ProxyHandlers {
+    const startTime = Date.now();
+    const logTiming = (label: string, detail?: string): void => {
+        if (!context.config.startupTimingLogs) {
+            return;
+        }
+        const elapsed = Date.now() - startTime;
+        const suffix = detail ? ` ${detail}` : "";
+        context.output.appendLine(`[timing +${elapsed}ms] ${label}${suffix}`);
+    };
+
+    const tryAutoContinue = (): void => {
+        const { session, debugpyState } = context;
+        if (!session.pendingAutoContinue || !session.autoContinueThreadId) {
+            return;
+        }
+        if (!session.debugpyConfigurationDoneSent) {
+            return;
+        }
+        if (session.cppBreakpointsPresent && !session.lldbAttachCompleted) {
+            return;
+        }
+        if (session.hasEntryLineBreakpoint) {
+            return;
+        }
+        session.pendingAutoContinue = false;
+        const threadId = session.autoContinueThreadId;
+        delay(0).then(() => {
+            const continueRequest: DapRequest = {
+                seq: debugpyState.seq++,
+                type: "request",
+                command: "continue",
+                arguments: {
+                    threadId,
+                },
+            };
+            debugpyState.connection.send(continueRequest);
+            logTiming("auto-continue after entry stop");
+        });
+    };
+
+    // Check if all conditions are met to send debugpy configurationDone.
+    // If so, send it and return true; otherwise return false.
+    const trySendDebugpyConfigurationDone = (): boolean => {
+        const { session, debugpyState, config } = context;
+        if (session.debugpyConfigurationDoneSent) {
+            return false;
+        }
+        if (!session.clientConfigurationDone || session.pendingSetBreakpointsRequests > 0) {
+            return false;
+        }
+        session.debugpyConfigurationDoneSent = true;
+        logTiming("send gated configurationDone");
+        const configDone: DapRequest = {
+            seq: debugpyState.seq++,
+            type: "request",
+            command: "configurationDone",
+        };
+        debugpyState.pendingSyntheticConfigDone.add(configDone.seq);
+        debugpyState.connection.send(configDone);
+        tryAutoContinue();
+        return true;
+    };
+
+    context.breakpointContext.onSetBreakpointsResolved = trySendDebugpyConfigurationDone;
+
     // Handle messages from the VS Code client.
     const handleClientMessage = (message: DapMessage): void => {
         if (message.type !== "request") {
@@ -114,27 +180,42 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
                 handleBreakpointLocations(context.breakpointContext, message);
                 return;
             }
-            case "launch":
-            case "attach": {
-                // Start the Python debug session via debugpy.
+            case "launch": {
+                logTiming("client launch", `seq=${message.seq}`);
+                const shouldForceStopOnEntry = context.config.lldbAttachToPythonProcess !== false;
+                if (shouldForceStopOnEntry) {
+                    // Force stopOnEntry=true to stop at entry before C++ breakpoints are set
+                    const launchRequest: DapRequest = {
+                        ...message,
+                        arguments: {
+                            ...(message.arguments ?? {}),
+                            stopOnEntry: true,
+                        },
+                    };
+                    context.session.forcedStopOnEntry = true;
+                    forwardClientRequestToDebugpy(launchRequest, context.debugpyState);
+                    return;
+                }
                 forwardClientRequestToDebugpy(message, context.debugpyState);
-                // debugpy requires configurationDone during launch/attach.
-                const configDone: DapRequest = {
-                    seq: context.debugpyState.seq++,
-                    type: "request",
-                    command: "configurationDone",
-                };
-                context.debugpyState.pendingSyntheticConfigDone.add(configDone.seq);
-                context.debugpyState.connection.send(configDone);
+                return;
+            }
+            case "attach": {
+                logTiming("client attach", `seq=${message.seq}`);
+                forwardClientRequestToDebugpy(message, context.debugpyState);
                 return;
             }
             case "setBreakpoints": {
                 // Split breakpoints between debugpy and LLDB.
+                context.session.pendingSetBreakpointsRequests += 1;
+                logTiming("received setBreakpoints", `seq=${message.seq}`);
+                logTiming("handle setBreakpoints", `seq=${message.seq}`);
                 handleSetBreakpoints(context.breakpointContext, message);
                 return;
             }
             case "configurationDone": {
-                // We already sent configurationDone to debugpy.
+                logTiming("client configurationDone", `seq=${message.seq}`);
+                context.session.clientConfigurationDone = true;
+                trySendDebugpyConfigurationDone();
                 const response: DapResponse = {
                     seq: context.session.clientSeq++,
                     type: "response",
@@ -177,6 +258,7 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
                 // Merge partial breakpoint results back into original order.
                 context.debugpyState.pendingSetBreakpoints.delete(message.request_seq);
                 applySetBreakpointsResponse(context.breakpointContext, pending, message);
+                trySendDebugpyConfigurationDone();
                 return;
             }
         }
@@ -200,6 +282,12 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
                 context.sendToClient(
                     mapAdapterResponseToClient(context, message, clientPending),
                 );
+                if (clientPending.command === "setBreakpoints") {
+                    if (context.session.pendingSetBreakpointsRequests > 0) {
+                        context.session.pendingSetBreakpointsRequests -= 1;
+                    }
+                    trySendDebugpyConfigurationDone();
+                }
                 if (
                     clientPending.command === "disconnect" ||
                     clientPending.command === "terminate"
@@ -215,12 +303,24 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
 
         if (message.type === "event" && message.event === "process") {
             // Attach LLDB after debugpy reports the process id.
+            logTiming("debugpy process event");
             handleDebugpyProcessEvent(context, message);
         }
 
         if (message.type === "event" && message.event === "stopped") {
             // Python stopped -> route stepping to debugpy.
+            logTiming("debugpy stopped event");
             context.session.activeAdapter = "debugpy";
+            // If this is the forced entry stop, handle auto-continue coordination
+            if (context.session.forcedStopOnEntry && !context.session.pendingAutoContinue) {
+                const threadId = (message as DapEvent).body?.threadId as number | undefined;
+                if (threadId) {
+                    context.session.autoContinueThreadId = threadId;
+                    context.session.pendingAutoContinue = true;
+                    context.session.forcedStopOnEntry = false;
+                    tryAutoContinue();
+                }
+            }
         }
 
         if (message.type === "event" && message.event === "terminated") {
@@ -247,6 +347,7 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
                 // Merge partial breakpoint results back into original order.
                 context.lldbState.pendingSetBreakpoints.delete(message.request_seq);
                 applySetBreakpointsResponse(context.breakpointContext, pending, message);
+                trySendDebugpyConfigurationDone();
                 return;
             }
 
@@ -258,7 +359,10 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
                     context.output.appendLine(
                         `LLDB request ${message.command} failed: ${message.message ?? "unknown error"}`,
                     );
-                } else if (message.command === "attach") {
+                }
+                if (message.command === "attach") {
+                    context.session.lldbAttachCompleted = true;
+                    tryAutoContinue();
                     // Once attached, refresh cached JIT breakpoints.
                     refreshLldbBreakpoints(context.breakpointContext);
                 }
@@ -339,6 +443,7 @@ export function createHandlers(context: HandlerContext): ProxyHandlers {
 
         if (message.type === "event" && message.event === "stopped") {
             // Native stopped -> route stepping to LLDB.
+            logTiming("lldb stopped event");
             context.session.activeAdapter = "lldb";
         }
 
@@ -385,7 +490,8 @@ function handleDebugpyProcessEvent(
         !context.lldbState.attachRequested
     ) {
         context.session.debuggeePid = pid;
-        context.lldbState.attachRequested = true; // make sure we only attach once
+        context.lldbState.attachRequested = true;
+        const lldbConn = context.lldbState.connection;
         const attachRequest: DapRequest = {
             seq: context.lldbState.seq++,
             type: "request",
@@ -394,17 +500,16 @@ function handleDebugpyProcessEvent(
                 pid,
             },
         };
-        context.lldbState.sessionStarted = true;  // mark LLDB as attached
+        context.lldbState.sessionStarted = true;
         context.lldbState.pendingRequests.set(attachRequest.seq, attachRequest.command);
-        context.lldbState.connection.send(attachRequest);
-        // LLDB expects configurationDone after attach.
+        lldbConn.send(attachRequest);
         const configDoneRequest: DapRequest = {
             seq: context.lldbState.seq++,
             type: "request",
             command: "configurationDone",
         };
         context.lldbState.pendingConfigDone.add(configDoneRequest.seq);
-        context.lldbState.connection.send(configDoneRequest);
+        lldbConn.send(configDoneRequest);
         context.output.appendLine(`LLDB attach requested for pid ${pid}.`);
     }
 }

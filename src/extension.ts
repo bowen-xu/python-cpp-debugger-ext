@@ -7,7 +7,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	// We register:
 	// 1) a debug configuration provider (fills defaults and validates config)
 	// 2) a debug adapter factory (our DAP bridge between VS Code and debugpy/LLDB)
-	const provider = new PycppDebugConfigurationProvider();
+	const provider = new PycppDebugConfigurationProvider(context);
 	const descriptorFactory = new PycppDebugAdapterDescriptorFactory();
 	context.subscriptions.push(
 		vscode.debug.registerDebugConfigurationProvider("pycpp-debug", provider),
